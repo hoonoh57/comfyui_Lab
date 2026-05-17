@@ -1,156 +1,18 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Media Generation Lab</title>
 <style>
-:root{--bg:#0f0f13;--surface:#1a1a24;--surface2:#242436;--border:#333348;--primary:#6c5ce7;--primary-light:#a29bfe;--accent:#00cec9;--danger:#ff6b6b;--success:#00b894;--warning:#fdcb6e;--text:#dfe6e9;--text-dim:#636e72;--radius:8px}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0}
-header h1{font-size:16px;font-weight:700;background:linear-gradient(135deg,var(--primary-light),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.server-status{display:flex;align-items:center;gap:6px;font-size:12px;margin-left:auto}
-.status-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);transition:background .3s}
-.status-dot.connected{background:var(--success)}
-.status-dot.connecting{background:var(--warning);animation:pulse 1s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-#serverUrl{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:var(--radius);font-size:12px;width:200px}
-.btn{padding:5px 12px;border:none;border-radius:var(--radius);cursor:pointer;font-size:12px;font-weight:600;transition:all .2s}
-.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-light)}
-.btn-accent{background:var(--accent);color:#000}.btn-accent:hover{opacity:.85}
-.btn-danger{background:var(--danger);color:#fff}
-.btn-sm{padding:3px 8px;font-size:11px}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-main{flex:1;display:grid;grid-template-columns:260px 1fr 300px;gap:0;overflow:hidden}
-.panel-left{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px}
-.panel-section{background:var(--surface2);border-radius:var(--radius);padding:10px}
-.panel-section h3{font-size:12px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;letter-spacing:.5px}
-.panel-center{display:flex;flex-direction:column;overflow:hidden}
-.prompt-area{padding:12px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:8px}
-.prompt-area textarea{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:8px;font-size:13px;resize:vertical;font-family:inherit}
-.prompt-area textarea:focus{outline:none;border-color:var(--primary)}
-.action-row{display:flex;gap:8px;align-items:center}
-.progress-bar{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;flex-shrink:0}
-.progress-bar .fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));width:0%;transition:width .3s}
-.gallery{flex:1;overflow-y:auto;padding:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;align-content:start}
-.gallery img{width:100%;border-radius:var(--radius);cursor:pointer;border:2px solid transparent;transition:border .2s}
-.gallery img:hover{border-color:var(--primary)}
-.log-area{flex-shrink:0;height:80px;background:var(--surface);border-top:1px solid var(--border);overflow-y:auto;padding:6px 12px;font-family:Consolas,monospace;font-size:11px;color:var(--text-dim)}
-.panel-right{background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
-label.ctrl{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text-dim)}
-label.ctrl span{font-weight:600}
-label.ctrl select,label.ctrl input[type=number],label.ctrl input[type=text]{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:4px;font-size:12px;width:100%}
-label.ctrl input[type=range]{width:100%;accent-color:var(--primary)}
-.range-row{display:flex;align-items:center;gap:6px}.range-row input[type=range]{flex:1}.range-row .val{font-size:11px;color:var(--accent);min-width:32px;text-align:right}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:12px;text-align:center;font-size:11px;color:var(--text-dim);cursor:pointer;transition:border-color .2s;position:relative;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.upload-zone:hover{border-color:var(--primary)}
-.upload-zone img{max-width:100%;max-height:100px;border-radius:4px;margin-top:4px}
-.upload-zone input[type=file]{display:none}
-.profiles{display:flex;gap:4px}.profiles .btn{flex:1;font-size:10px;padding:4px}
-.profiles .btn.active{outline:2px solid var(--accent)}
-.genre-list{display:flex;flex-wrap:wrap;gap:4px}
-.genre-chip{padding:3px 8px;border-radius:12px;font-size:11px;border:1px solid var(--border);cursor:pointer;transition:all .2s;background:transparent;color:var(--text)}
-.genre-chip:hover{border-color:var(--primary)}.genre-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
-.preset-item{display:flex;align-items:center;gap:4px;padding:4px;background:var(--surface2);border-radius:4px;font-size:11px;margin-bottom:3px}
-.preset-item .name{flex:1;cursor:pointer}.preset-item .name:hover{color:var(--accent)}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:1000}
-.modal-overlay.show{display:flex}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:700px;width:90%;max-height:80vh;overflow-y:auto}
-.modal h2{font-size:16px;margin-bottom:12px;color:var(--primary-light)}
-.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.modal .btn-row{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
-.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:2000;cursor:zoom-out}
-.lightbox.show{display:flex}.lightbox img{max-width:95%;max-height:95%;object-fit:contain}
-footer{background:var(--surface);border-top:1px solid var(--border);padding:4px 16px;font-size:10px;color:var(--text-dim);text-align:center;flex-shrink:0}
+body{margin:0;background:#0f0f13;color:#dfe6e9;font-family:Segoe UI,system-ui,sans-serif}header{background:#1a1a24;border-bottom:1px solid #333348;padding:8px 16px;display:flex;align-items:center;gap:12px}h1{font-size:16px;color:#a29bfe}.server-status{margin-left:auto;display:flex;gap:6px}.status-dot{width:8px;height:8px;border-radius:50%;background:#ff6b6b}.status-dot.connected{background:#00b894}.status-dot.connecting{background:#fdcb6e}#serverUrl{background:#242436;border:1px solid #333348;color:#dfe6e9;padding:4px 8px;border-radius:8px;width:200px}.btn{padding:5px 12px;border:0;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600}.btn-primary{background:#6c5ce7;color:#fff}.btn-accent{background:#00cec9;color:#000}.btn-danger{background:#ff6b6b;color:#fff}.btn-sm{padding:3px 8px;font-size:11px}.btn:disabled{opacity:.4}main{height:calc(100vh - 84px);display:grid;grid-template-columns:260px 1fr 300px}.panel-left,.panel-right{background:#1a1a24;padding:12px;overflow:auto}.panel-center{display:flex;flex-direction:column}.panel-section{background:#242436;border-radius:8px;padding:10px;margin-bottom:12px}.panel-section h3{font-size:12px;color:#8b93a7}.prompt-area{padding:12px;border-bottom:1px solid #333348}.prompt-area textarea{width:100%;background:#242436;border:1px solid #333348;color:#dfe6e9;border-radius:8px;padding:8px;margin-bottom:8px}.action-row{display:flex;gap:8px}.gallery{flex:1;padding:12px;overflow:auto}.log-area{height:100px;background:#1a1a24;border-top:1px solid #333348;padding:8px;color:#8b93a7;font:11px Consolas;white-space:pre-wrap;overflow:auto}.upload-zone{border:2px dashed #333348;border-radius:8px;padding:14px;text-align:center;color:#8b93a7}.upload-zone input{display:none}.ctrl{display:flex;flex-direction:column;font-size:11px;color:#8b93a7;margin-bottom:6px}.ctrl input,.ctrl select{background:#242436;border:1px solid #333348;color:#dfe6e9;border-radius:4px;padding:4px}.row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}.profiles{display:flex;gap:4px}.profiles .btn{flex:1}.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center}.modal-overlay.show{display:flex}.modal{background:#1a1a24;border:1px solid #333348;border-radius:12px;padding:20px;width:600px}.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}footer{height:28px;text-align:center;color:#8b93a7;font-size:10px;background:#1a1a24;border-top:1px solid #333348;padding-top:6px}
 </style>
 </head>
 <body>
-<header>
-  <h1>Media Generation Lab</h1>
-  <div class="server-status"><div class="status-dot" id="statusDot"></div><span id="statusText">Disconnected</span></div>
-  <input type="text" id="serverUrl" value="http://127.0.0.1:8188">
-  <button class="btn btn-primary" id="btnConnect" onclick="connectServer()">Connect</button>
-  <button class="btn btn-sm" onclick="showAdvancedDialog()">Advanced</button>
-</header>
-<main>
-  <div class="panel-left">
-    <div class="panel-section"><h3>Genre Presets</h3><div class="genre-list" id="genreList"></div></div>
-    <div class="panel-section"><h3>Character Reference</h3>
-      <div class="upload-zone" id="zoneChar" onclick="document.getElementById('fileChar').click()">
-        <input type="file" id="fileChar" accept="image/*" onchange="handleUpload(this,'char')">
-        <div id="previewChar">Click or drag image</div>
-      </div>
-    </div>
-    <div class="panel-section"><h3>Pose Reference (optional)</h3>
-      <div class="upload-zone" id="zonePose" onclick="document.getElementById('filePose').click()">
-        <input type="file" id="filePose" accept="image/*" onchange="handleUpload(this,'pose')">
-        <div id="previewPose">Click or drag image</div>
-      </div>
-    </div>
-    <div class="panel-section"><h3>Saved Presets</h3><div id="presetList"></div>
-      <button class="btn btn-sm btn-primary" style="margin-top:6px;width:100%" onclick="saveCurrentPreset()">Save Current</button>
-    </div>
-  </div>
-  <div class="panel-center">
-    <div class="prompt-area">
-      <textarea id="positivePrompt" rows="3" placeholder="Positive prompt..."></textarea>
-      <textarea id="negativePrompt" rows="2" placeholder="Negative prompt...">(low quality, worst quality:1.4), blurry, bad anatomy, extra limbs, extra fingers, poorly drawn hands, watermark</textarea>
-      <div class="action-row">
-        <button class="btn btn-accent" id="btnGenerate" onclick="generate()" disabled>Generate</button>
-        <button class="btn btn-danger btn-sm" id="btnInterrupt" onclick="interrupt()" disabled>Stop</button>
-        <div style="flex:1"></div><span id="genInfo" style="font-size:11px;color:var(--text-dim)"></span>
-      </div>
-    </div>
-    <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
-    <div class="gallery" id="gallery"></div>
-    <div class="log-area" id="logArea"></div>
-  </div>
-  <div class="panel-right">
-    <div class="panel-section"><h3>Quick Profile</h3>
-      <div class="profiles">
-        <button class="btn btn-sm" data-profile="quality" onclick="applyProfile('quality')">Quality</button>
-        <button class="btn btn-sm active" data-profile="balanced" onclick="applyProfile('balanced')">Balanced</button>
-        <button class="btn btn-sm" data-profile="speed" onclick="applyProfile('speed')">Speed</button>
-      </div>
-    </div>
-    <div class="panel-section"><h3>Models</h3>
-      <label class="ctrl"><span>Checkpoint</span><select id="selCheckpoint"></select></label>
-      <label class="ctrl" style="margin-top:6px"><span>ControlNet</span><select id="selControlnet"></select></label>
-      <label class="ctrl" style="margin-top:6px"><span>IPAdapter</span><select id="selIpadapter"></select></label>
-      <label class="ctrl" style="margin-top:6px"><span>CLIP Vision</span><select id="selClipvision"></select></label>
-    </div>
-    <div class="panel-section"><h3>Resolution</h3>
-      <div class="row2">
-        <label class="ctrl"><span>W</span><input type="number" id="inWidth" value="512" step="64" min="256" max="1024"></label>
-        <label class="ctrl"><span>H</span><input type="number" id="inHeight" value="768" step="64" min="256" max="1024"></label>
-      </div>
-    </div>
-    <div class="panel-section"><h3>KSampler</h3>
-      <label class="ctrl"><span>Steps</span><div class="range-row"><input type="range" id="inSteps" min="5" max="50" value="25"><span class="val" id="valSteps">25</span></div></label>
-      <label class="ctrl"><span>CFG</span><div class="range-row"><input type="range" id="inCfg" min="1" max="15" value="7.0" step="0.5"><span class="val" id="valCfg">7.0</span></div></label>
-      <div class="row2">
-        <label class="ctrl"><span>Sampler</span><select id="selSampler"><option>dpmpp_2m</option><option>euler</option><option>euler_ancestral</option><option>dpmpp_sde</option><option>ddim</option><option>uni_pc</option></select></label>
-        <label class="ctrl"><span>Scheduler</span><select id="selScheduler"><option>karras</option><option>normal</option><option>exponential</option><option>sgm_uniform</option></select></label>
-      </div>
-      <label class="ctrl"><span>Seed (-1=random)</span><input type="number" id="inSeed" value="-1"></label>
-    </div>
-    <div class="panel-section"><h3>IPAdapter</h3>
-      <label class="ctrl"><span>Weight</span><div class="range-row"><input type="range" id="inIpaWeight" min="0" max="1" value="0.40" step="0.05"><span class="val" id="valIpaWeight">0.40</span></div></label>
-      <label class="ctrl"><span>Weight Type</span><select id="selIpaWeightType"><option value="linear">linear</option><option value="ease in">ease in</option><option value="ease out">ease out</option><option value="weak input">weak input</option><option value="style transfer">style transfer</option><option value="strong style transfer">strong style transfer</option></select></label>
-      <div class="row2">
-        <label class="ctrl"><span>Start</span><div class="range-row"><input type="range" id="inIpaStart" min="0" max="1" value="0.20" step="0.05"><span class="val" id="valIpaStart">0.20</span></div></label>
-        <label class="ctrl"><span>End</span><div class="range-row"><input type="range" id="inIpaEnd" min="0" max="1" value="0.80" step="0.05"><span class="val" id="valIpaEnd">0.80</span></div></label>
-      </div>
-      <label class="ctrl"><span>Embeds Scaling</span><select id="selEmbedsScaling"><option value="V only">V only</option><option value="K+V">K+V</option><option value="K+V w/ C penalty" selected>K+V w/ C penalty</option><option value="K+mean(V) w/ C penalty">K+mean(V) w/ C penalty</option></select></label>
-    </div>
-    <div class="panel-section"><h3>ControlNet</h3>
-      <label class="ctrl"><span>Strength</span><div class="range-row"><input type="range" id="inCnStrength" min="0" max="1" value="0.82" step="0.02"><span class="val" id="valCnStrength">0.82</span></div></label>
-      <label class="ctrl"><span>End %</span><div class="range-row"><input type="range" id="inCnEnd" min="0" max="1" value="0.75" step="0.05"><span class="val" id="valCnEnd">0.75</span></div></label>
-    </div>
-  </div>
-</main>
-<div class="modal-overlay" id="advancedModal"><div class="modal"><h2>Advanced Settings</h2><div class="modal-grid" id="advancedGrid"></div><div class="btn-row"><button class="btn btn-sm" onclick="closeAdvancedDialog()">Close</button><button class="btn btn-sm btn-primary" onclick="applyAdvancedSettings()">Apply</button></div></div></div>
-<div class="lightbox" id="lightbox" onclick="this.classList.remove('show')"><img id="lightboxImg"></div>
-<footer>Media Generation Lab v2.0 | RTX 4070 8GB | github.com/hoonoh57/comfyui_Lab</footer>
+<header><h1>Media Generation Lab</h1><div class="server-status"><div class="status-dot" id="statusDot"></div><span id="statusText">Disconnected</span></div><input id="serverUrl" value="http://127.0.0.1:8188"><button class="btn btn-primary" id="btnConnect" onclick="connectServer()">Connect</button><button class="btn btn-sm" onclick="showAdvancedDialog()">Advanced</button></header>
+<main><div class="panel-left"><div class="panel-section"><h3>Genre Presets</h3><div id="genreList"></div></div><div class="panel-section"><h3>Character Reference</h3><div class="upload-zone" onclick="document.getElementById('fileChar').click()"><input type="file" id="fileChar" accept="image/*" onchange="handleUpload(this,'char')"><div id="previewChar">Click or drag image</div></div></div><div class="panel-section"><h3>Pose Reference</h3><div class="upload-zone" onclick="document.getElementById('filePose').click()"><input type="file" id="filePose" accept="image/*" onchange="handleUpload(this,'pose')"><div id="previewPose">Click or drag image</div></div></div><div class="panel-section"><h3>Saved Presets</h3><div id="presetList"></div><button class="btn btn-sm btn-primary" onclick="saveCurrentPreset()">Save Current</button></div></div><div class="panel-center"><div class="prompt-area"><textarea id="positivePrompt" rows="3" placeholder="Positive prompt..."></textarea><textarea id="negativePrompt" rows="2">(low quality, worst quality:1.4), blurry, bad anatomy, extra limbs, extra fingers, poorly drawn hands, watermark</textarea><div class="action-row"><button class="btn btn-accent" id="btnGenerate" onclick="generate()" disabled>Generate</button><button class="btn btn-danger btn-sm" id="btnInterrupt" onclick="interrupt()" disabled>Stop</button><span id="genInfo"></span></div></div><div class="gallery" id="gallery"></div><div class="log-area" id="logArea"></div></div><div class="panel-right"><div class="panel-section"><h3>Quick Profile</h3><div class="profiles"><button class="btn btn-sm" onclick="applyProfile('quality')">Quality</button><button class="btn btn-sm" onclick="applyProfile('balanced')">Balanced</button><button class="btn btn-sm" onclick="applyProfile('speed')">Speed</button></div></div><div class="panel-section"><h3>Models</h3><label class="ctrl">Checkpoint<select id="selCheckpoint"></select></label><label class="ctrl">ControlNet<select id="selControlnet"></select></label><label class="ctrl">IPAdapter<select id="selIpadapter"></select></label><label class="ctrl">CLIP Vision<select id="selClipvision"></select></label></div><div class="panel-section"><h3>Resolution</h3><div class="row2"><label class="ctrl">W<input id="inWidth" type="number" value="512"></label><label class="ctrl">H<input id="inHeight" type="number" value="768"></label></div></div><div class="panel-section"><h3>KSampler</h3><label class="ctrl">Steps<input id="inSteps" type="range" min="5" max="50" value="25"></label><label class="ctrl">CFG<input id="inCfg" type="range" min="1" max="15" value="7" step="0.5"></label><div class="row2"><label class="ctrl">Sampler<select id="selSampler"><option>dpmpp_2m</option><option>euler</option></select></label><label class="ctrl">Scheduler<select id="selScheduler"><option>karras</option><option>normal</option></select></label></div><label class="ctrl">Seed<input id="inSeed" type="number" value="-1"></label></div></div></main>
+<div class="modal-overlay" id="advancedModal"><div class="modal"><h2>Advanced Settings</h2><div class="modal-grid" id="advancedGrid"></div><div><button class="btn btn-sm" onclick="closeAdvancedDialog()">Close</button><button class="btn btn-sm btn-primary" onclick="applyAdvancedSettings()">Apply</button></div></div></div>
+<footer>Media Generation Lab v2.1 hotfix</footer>
+<script src="hotfix.js"></script>
+</body>
+</html>
