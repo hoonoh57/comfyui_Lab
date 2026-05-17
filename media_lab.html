@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>미디어 생성 연구소</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#e6edf3;--text2:#8b949e;--accent:#58a6ff;--accent2:#3fb950;--danger:#f85149;--warn:#d29922}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.app{display:grid;grid-template-columns:320px 1fr 340px;grid-template-rows:56px 1fr 40px;height:100vh}
+header{grid-column:1/-1;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px}
+header h1{font-size:18px;font-weight:600}
+header .status{margin-left:auto;font-size:12px;display:flex;align-items:center;gap:6px}
+header .dot{width:8px;height:8px;border-radius:50%;background:var(--danger)}
+header .dot.on{background:var(--accent2)}
+.left{grid-column:1;overflow-y:auto;border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:12px}
+.center{grid-column:2;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+.right{grid-column:3;overflow-y:auto;border-left:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:12px}
+footer{grid-column:1/-1;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 20px;font-size:11px;color:var(--text2)}
+.section{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px}
+.section h3{font-size:13px;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px}
+select,input[type=text],input[type=number],textarea{width:100%;background:#0d1117;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit}
+textarea{resize:vertical;min-height:80px}
+select:focus,input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+.row{display:flex;gap:8px;align-items:end}
+.row>*{flex:1}
+.btn{padding:10px 16px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:.2s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#4c9aed}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-success{background:var(--accent2);color:#000}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-sm{padding:6px 10px;font-size:11px}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.slider-group{margin-bottom:8px}
+.slider-group .head{display:flex;justify-content:space-between;align-items:center}
+.slider-group input[type=range]{width:100%;accent-color:var(--accent);margin-top:4px}
+.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.img-grid img{width:100%;border-radius:6px;border:2px solid transparent;cursor:pointer;transition:.2s}
+.img-grid img:hover{border-color:var(--accent)}
+.img-grid img.selected{border-color:var(--accent2)}
+.upload-zone{border:2px dashed var(--border);border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:.2s;position:relative;overflow:hidden}
+.upload-zone:hover{border-color:var(--accent)}
+.upload-zone img{max-width:100%;max-height:150px;border-radius:4px;margin-top:8px}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.progress{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px}
+.progress .bar{height:100%;background:var(--accent);transition:width .3s;width:0%}
+.tag{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;margin:2px;cursor:pointer;border:1px solid var(--border)}
+.tag:hover{border-color:var(--accent)}
+.tag.active{background:var(--accent);color:#000;border-color:var(--accent)}
+.presets{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.log{background:#000;border-radius:6px;padding:10px;font-family:'Consolas',monospace;font-size:11px;color:var(--accent2);max-height:150px;overflow-y:auto;white-space:pre-wrap}
+.saved-list{display:flex;flex-direction:column;gap:6px}
+.saved-item{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg);border-radius:6px;cursor:pointer;border:1px solid transparent}
+.saved-item:hover{border-color:var(--accent)}
+.saved-item .name{flex:1;font-size:12px}
+.saved-item .del{color:var(--danger);cursor:pointer;font-size:14px}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto}
+.modal h2{font-size:16px;margin-bottom:16px}
+.toast{position:fixed;top:70px;right:20px;padding:12px 20px;border-radius:8px;font-size:13px;z-index:200;animation:slideIn .3s}
+.toast.success{background:var(--accent2);color:#000}
+.toast.error{background:var(--danger);color:#fff}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <h1>🎬 미디어 생성 연구소</h1>
+  <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">연결 중...</span></div>
+</header>
+
+<aside class="left">
+  <div class="section">
+    <h3>📌 서버 연결</h3>
+    <label>ComfyUI 주소</label>
+    <div class="row">
+      <input type="text" id="serverAddr" value="127.0.0.1:8188">
+      <button class="btn btn-primary btn-sm" onclick="connectServer()">연결</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>🎭 장르 프리셋</h3>
+    <div class="presets" id="genrePresets"></div>
+  </div>
+
+  <div class="section">
+    <h3>📷 캐릭터 참조 이미지</h3>
+    <div class="upload-zone" id="charZone">
+      <div>클릭하여 업로드<br><small>얼굴/의상 참조용</small></div>
+      <input type="file" accept="image/*" onchange="uploadRef(this,'char')">
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>🏃 포즈 참조 이미지</h3>
+    <div class="upload-zone" id="poseZone">
+      <div>클릭하여 업로드<br><small>동작/자세 참조용</small></div>
+      <input type="file" accept="image/*" onchange="uploadRef(this,'pose')">
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>💾 저장된 워크플로우</h3>
+    <div class="saved-list" id="savedList"></div>
+    <button class="btn btn-outline btn-sm" style="margin-top:8px;width:100%" onclick="saveCurrentPreset()">현재 설정 저장</button>
+  </div>
+</aside>
+
+<main class="center">
+  <div class="section">
+    <h3>✏️ 프롬프트</h3>
+    <label>긍정 프롬프트 (원하는 것)</label>
+    <textarea id="positivePrompt" rows="4">(masterpiece, best quality:1.2), 1boy, wuxia hero, silver long hair, (dynamic martial arts fighting pose:1.4), (right arm thrusting forward with palm strike:1.3), flowing black robes with golden trim, dramatic lighting, ancient temple background, full body shot</textarea>
+    <label style="margin-top:8px">부정 프롬프트 (원하지 않는 것)</label>
+    <textarea id="negativePrompt" rows="2">(low quality, worst quality:1.4), blurry, bad anatomy, extra limbs, extra fingers, deformed, ugly, watermark</textarea>
+  </div>
+
+  <div class="row">
+    <button class="btn btn-primary" id="generateBtn" onclick="generate()" style="flex:2" disabled>🎨 이미지 생성</button>
+    <button class="btn btn-danger btn-sm" onclick="interrupt()">중단</button>
+  </div>
+
+  <div class="progress" id="progressWrap"><div class="bar" id="progressBar"></div></div>
+
+  <div class="img-grid" id="gallery"></div>
+
+  <div class="section">
+    <h3>📋 로그</h3>
+    <div class="log" id="logBox">시스템 준비 중...\n</div>
+  </div>
+</main>
+
+<aside class="right">
+  <div class="section">
+    <h3>🎛️ 모델 선택</h3>
+    <label>체크포인트</label>
+    <select id="selCheckpoint"></select>
+    <label style="margin-top:6px">ControlNet</label>
+    <select id="selControlNet"></select>
+    <label style="margin-top:6px">IPAdapter</label>
+    <select id="selIPAdapter"></select>
+    <label style="margin-top:6px">CLIP Vision</label>
+    <select id="selCLIPVision"></select>
+  </div>
+
+  <div class="section">
+    <h3>🖼️ 해상도</h3>
+    <div class="row">
+      <div><label>너비</label><input type="number" id="imgWidth" value="512" step="64" min="256" max="2048"></div>
+      <div><label>높이</label><input type="number" id="imgHeight" value="768" step="64" min="256" max="2048"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>⚙️ KSampler</h3>
+    <div class="slider-group">
+      <div class="head"><label>Steps</label><span id="vSteps">25</span></div>
+      <input type="range" id="sSteps" min="10" max="50" value="25" oninput="document.getElementById('vSteps').textContent=this.value">
+    </div>
+    <div class="slider-group">
+      <div class="head"><label>CFG</label><span id="vCfg">7.0</span></div>
+      <input type="range" id="sCfg" min="1" max="20" step="0.5" value="7" oninput="document.getElementById('vCfg').textContent=this.value">
+    </div>
+    <label>Sampler</label>
+    <select id="selSampler">
+      <option value="dpmpp_2m" selected>dpmpp_2m (추천)</option>
+      <option value="euler_ancestral">euler_ancestral (빠름)</option>
+      <option value="euler">euler (가장 빠름)</option>
+      <option value="dpmpp_sde">dpmpp_sde (고품질)</option>
+      <option value="ddim">ddim</option>
+    </select>
+    <label style="margin-top:6px">Scheduler</label>
+    <select id="selScheduler">
+      <option value="karras" selected>karras (추천)</option>
+      <option value="normal">normal</option>
+      <option value="exponential">exponential</option>
+    </select>
+  </div>
+
+  <div class="section">
+    <h3>🎨 IPAdapter 설정</h3>
+    <div class="slider-group">
+      <div class="head"><label>Weight (용모 강도)</label><span id="vIpaW">0.40</span></div>
+      <input type="range" id="sIpaW" min="0" max="1" step="0.05" value="0.40" oninput="document.getElementById('vIpaW').textContent=parseFloat(this.value).toFixed(2)">
+    </div>
+    <div class="slider-group">
+      <div class="head"><label>Start At</label><span id="vIpaS">0.20</span></div>
+      <input type="range" id="sIpaS" min="0" max="1" step="0.05" value="0.20" oninput="document.getElementById('vIpaS').textContent=parseFloat(this.value).toFixed(2)">
+    </div>
+    <div class="slider-group">
+      <div class="head"><label>End At</label><span id="vIpaE">0.80</span></div>
+      <input type="range" id="sIpaE" min="0" max="1" step="0.05" value="0.80" oninput="document.getElementById('vIpaE').textContent=parseFloat(this.value).toFixed(2)">
+    </div>
+    <label>Weight Type</label>
+    <select id="selIpaType">
+      <option value="linear" selected>linear (추천)</option>
+      <option value="ease in">ease in</option>
+      <option value="ease out">ease out</option>
+      <option value="ease in-out">ease in-out</option>
+      <option value="weak input">weak input</option>
+      <option value="style transfer">style transfer</option>
+      <option value="strong style transfer">strong style transfer</option>
+    </select>
+    <label style="margin-top:6px">Embeds Scaling</label>
+    <select id="selIpaEmbed">
+      <option value="K+mean(V) w/ C penalty" selected>K+mean(V) w/ C penalty (추천)</option>
+      <option value="V only">V only</option>
+      <option value="K+V">K+V</option>
+      <option value="K+V w/ C penalty">K+V w/ C penalty</option>
+    </select>
+  </div>
+
+  <div class="section">
+    <h3>🎯 ControlNet 설정</h3>
+    <div class="slider-group">
+      <div class="head"><label>Strength (포즈 강도)</label><span id="vCnS">0.82</span></div>
+      <input type="range" id="sCnS" min="0" max="1.5" step="0.02" value="0.82" oninput="document.getElementById('vCnS').textContent=parseFloat(this.value).toFixed(2)">
+    </div>
+    <div class="slider-group">
+      <div class="head"><label>End Percent</label><span id="vCnE">0.75</span></div>
+      <input type="range" id="sCnE" min="0" max="1" step="0.05" value="0.75" oninput="document.getElementById('vCnE').textContent=parseFloat(this.value).toFixed(2)">
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>⚡ 퀵 프로파일</h3>
+    <button class="btn btn-outline btn-sm" style="width:100%;margin-bottom:4px" onclick="applyProfile('quality')">🏆 최고 품질 (느림)</button>
+    <button class="btn btn-outline btn-sm" style="width:100%;margin-bottom:4px" onclick="applyProfile('balanced')">⚖️ 균형 (기본)</button>
+    <button class="btn btn-outline btn-sm" style="width:100%" onclick="applyProfile('speed')">🚀 최고 속도 (빠름)</button>
+  </div>
+</aside>
+
+<footer>미디어 생성 연구소 v1.0 — ComfyUI API 기반 — RTX 4070 8GB 최적화</footer>
+</div>
+
+<div class="modal-bg" id="saveModal">
+  <div class="modal">
+    <h2>워크플로우 저장</h2>
+    <label>이름</label>
+    <input type="text" id="saveName" placeholder="예: 무협_격투씬_v1">
+    <label style="margin-top:8px">장르 태그</label>
+    <input type="text" id="saveGenre" placeholder="예: 무협, 판타지">
+    <div class="row" style="margin-top:16px">
+      <button class="btn btn-primary" onclick="confirmSave()">저장</button>
+      <button class="btn btn-outline" onclick="closeSaveModal()">취소</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== 전역 상태 ==========
+let SERVER = '127.0.0.1:8188';
+let ws = null;
+let clientId = crypto.randomUUID();
+let charImageName = null;
+let poseImageName = null;
+let isGenerating = false;
+
+const GENRES = [
+  {name:'무협',pos:'wuxia hero, martial arts pose, flowing robes, ancient Chinese setting',neg:'modern clothes, western'},
+  {name:'판타지',pos:'fantasy warrior, magical aura, enchanted armor, mythical landscape',neg:'modern, realistic, photo'},
+  {name:'SF',pos:'sci-fi soldier, futuristic armor, neon lights, cyberpunk city',neg:'medieval, fantasy, nature'},
+  {name:'현대 액션',pos:'modern action hero, dynamic combat pose, urban environment',neg:'fantasy, medieval, anime'},
+  {name:'애니메이션',pos:'anime style, cel shading, vibrant colors, expressive pose',neg:'realistic, photo, 3d render'},
+  {name:'공포',pos:'dark atmosphere, horror scene, eerie lighting, gothic',neg:'bright, cheerful, colorful'},
+];
+
+const PROFILES = {
+  quality:{steps:30,cfg:7.5,w:768,h:768,ipaW:.45,ipaS:.15,ipaE:.85,cnS:.88,cnE:.85,sampler:'dpmpp_2m'},
+  balanced:{steps:25,cfg:7,w:512,h:768,ipaW:.40,ipaS:.20,ipaE:.80,cnS:.82,cnE:.75,sampler:'dpmpp_2m'},
+  speed:{steps:15,cfg:7,w:512,h:512,ipaW:.35,ipaS:.25,ipaE:.70,cnS:.75,cnE:.60,sampler:'euler_ancestral'},
+};
+
+// ========== 유틸 ==========
+function log(msg){const b=document.getElementById('logBox');b.textContent+=`[${new Date().toLocaleTimeString()}] ${msg}\n`;b.scrollTop=b.scrollHeight}
+function toast(msg,type='success'){const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000)}
+function $(id){return document.getElementById(id)}
+
+// ========== 서버 연결 ==========
+async function connectServer(){
+  SERVER=$('serverAddr').value.trim();
+  log('서버 연결 시도: '+SERVER);
+  try{
+    const r=await fetch(`http://${SERVER}/system_stats`);
+    const d=await r.json();
+    log(`연결 성공! GPU: ${d.devices?.[0]?.name||'unknown'}, VRAM: ${Math.round((d.devices?.[0]?.vram_total||0)/1024/1024/1024)}GB`);
+    $('statusDot').classList.add('on');
+    $('statusText').textContent='연결됨';
+    $('generateBtn').disabled=false;
+    connectWS();
+    loadModels();
+    toast('ComfyUI 연결 성공!');
+  }catch(e){
+    log('연결 실패: '+e.message);
+    $('statusDot').classList.remove('on');
+    $('statusText').textContent='연결 실패';
+    toast('연결 실패 — ComfyUI가 실행 중인지 확인하세요','error');
+  }
+}
+
+function connectWS(){
+  if(ws)ws.close();
+  ws=new WebSocket(`ws://${SERVER}/ws?clientId=${clientId}`);
+  ws.onopen=()=>log('WebSocket 연결됨');
+  ws.onmessage=(e)=>{
+    if(typeof e.data!=='string')return;
+    const m=JSON.parse(e.data);
+    if(m.type==='progress'){
+      const p=Math.round(m.data.value/m.data.max*100);
+      $('progressBar').style.width=p+'%';
+    }
+    if(m.type==='executing'&&m.data.node===null){
+      onGenerationDone(m.data.prompt_id);
+    }
+    if(m.type==='execution_error'){
+      log('실행 에러: '+JSON.stringify(m.data).substring(0,200));
+      toast('생성 실패!','error');
+      isGenerating=false;
+      $('generateBtn').disabled=false;
+    }
+  };
+  ws.onclose=()=>log('WebSocket 닫힘');
+}
+
+async function loadModels(){
+  try{
+    const load=async(type,selId,filter)=>{
+      const r=await fetch(`http://${SERVER}/models/${type}`);
+      const list=await r.json();
+      const sel=$(selId);
+      sel.innerHTML='';
+      const filtered=filter?list.filter(filter):list;
+      filtered.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m.split('/').pop();sel.appendChild(o)});
+      log(`${type}: ${filtered.length}개 모델 발견`);
+    };
+    await load('checkpoints','selCheckpoint');
+    await load('controlnet','selControlNet');
+    // IPAdapter와 CLIPVision은 custom 경로이므로 object_info로 조회
+    await loadCustomModels();
+  }catch(e){log('모델 목록 로드 실패: '+e.message)}
+}
+
+async function loadCustomModels(){
+  try{
+    // IPAdapter models
+    const r1=await fetch(`http://${SERVER}/object_info/IPAdapterModelLoader`);
+    const d1=await r1.json();
+    const ipaModels=d1.IPAdapterModelLoader?.input?.required?.ipadapter_file?.[0]||[];
+    const sel1=$('selIPAdapter');
+    sel1.innerHTML='';
+    ipaModels.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;sel1.appendChild(o)});
+
+    // CLIP Vision models
+    const r2=await fetch(`http://${SERVER}/object_info/CLIPVisionLoader`);
+    const d2=await r2.json();
+    const cvModels=d2.CLIPVisionLoader?.input?.required?.clip_name?.[0]||[];
+    const sel2=$('selCLIPVision');
+    sel2.innerHTML='';
+    cvModels.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;sel2.appendChild(o)});
+
+    log(`IPAdapter: ${ipaModels.length}개, CLIPVision: ${cvModels.length}개`);
+  }catch(e){log('커스텀 모델 조회 실패: '+e.message)}
+}
+
+// ========== 이미지 업로드 ==========
+async function uploadRef(input,type){
+  const file=input.files[0];
+  if(!file)return;
+  const form=new FormData();
+  form.append('image',file);
+  form.append('type','input');
+  form.append('overwrite','true');
+  try{
+    const r=await fetch(`http://${SERVER}/upload/image`,{method:'POST',body:form});
+    const d=await r.json();
+    const name=d.subfolder?`${d.subfolder}/${d.name}`:d.name;
+    if(type==='char'){
+      charImageName=name;
+      $('charZone').innerHTML=`<img src="http://${SERVER}/view?filename=${encodeURIComponent(d.name)}&type=input"><input type="file" accept="image/*" onchange="uploadRef(this,'char')">`;
+    }else{
+      poseImageName=name;
+      $('poseZone').innerHTML=`<img src="http://${SERVER}/view?filename=${encodeURIComponent(d.name)}&type=input"><input type="file" accept="image/*" onchange="uploadRef(this,'pose')">`;
+    }
+    log(`${type} 이미지 업로드: ${name}`);
+    toast(`${type==='char'?'캐릭터':'포즈'} 이미지 업로드 완료`);
+  }catch(e){log('업로드 실패: '+e.message);toast('업로드 실패','error')}
+}
+
+// ========== 워크플로우 생성 ==========
+function buildWorkflow(){
+  const ckpt=$('selCheckpoint').value;
+  const cn=$('selControlNet').value;
+  const ipa=$('selIPAdapter').value;
+  const cv=$('selCLIPVision').value;
+
+  const workflow = {
+    "1":{"class_type":"CheckpointLoaderSimple","inputs":{"ckpt_name":ckpt}},
+    "2":{"class_type":"CLIPTextEncode","inputs":{"clip":["1",1],"text":$('positivePrompt').value}},
+    "3":{"class_type":"CLIPTextEncode","inputs":{"clip":["1",1],"text":$('negativePrompt').value}},
+    "4":{"class_type":"EmptyLatentImage","inputs":{"width":parseInt($('imgWidth').value),"height":parseInt($('imgHeight').value),"batch_size":1}},
+    "10":{"class_type":"SaveImage","inputs":{"filename_prefix":"MediaLab","images":["9",0]}},
+  };
+
+  // VAE Decode
+  workflow["9"]={"class_type":"VAEDecode","inputs":{"samples":["8",0],"vae":["1",2]}};
+
+  // KSampler — 모델 소스는 IPAdapter 사용 여부에 따라 결정
+  let modelSource = ["1",0];
+
+  // IPAdapter 체인 (참조 이미지가 있을 때만)
+  if(charImageName && ipa && cv){
+    workflow["20"]={"class_type":"IPAdapterModelLoader","inputs":{"ipadapter_file":ipa}};
+    workflow["21"]={"class_type":"CLIPVisionLoader","inputs":{"clip_name":cv}};
+    workflow["22"]={"class_type":"LoadImage","inputs":{"image":charImageName}};
+    workflow["23"]={"class_type":"PrepImageForClipVision","inputs":{"image":["22",0],"interpolation":"LANCZOS","crop_position":"top","sharpening":0.05}};
+    workflow["24"]={"class_type":"IPAdapterAdvanced","inputs":{
+      "model":["1",0],
+      "ipadapter":["20",0],
+      "image":["23",0],
+      "clip_vision":["21",0],
+      "weight":parseFloat($('sIpaW').value),
+      "weight_type":$('selIpaType').value,
+      "combine_embeds":"concat",
+      "start_at":parseFloat($('sIpaS').value),
+      "end_at":parseFloat($('sIpaE').value),
+      "embeds_scaling":$('selIpaEmbed').value,
+    }};
+    modelSource=["24",0];
+  }
+
+  // ControlNet 체인 (포즈 이미지가 있을 때만)
+  let posSource=["2",0];
+  let negSource=["3",0];
+
+  if(poseImageName && cn){
+    workflow["30"]={"class_type":"LoadImage","inputs":{"image":poseImageName}};
+    workflow["31"]={"class_type":"DWPreprocessor","inputs":{
+      "image":["30",0],
+      "detect_hand":"enable","detect_body":"enable","detect_face":"enable",
+      "resolution":512,
+      "bbox_detector":"yolox_l.onnx",
+      "pose_estimator":"dw-ll_ucoco_384_bs5.torchscript.pt"
+    }};
+    workflow["32"]={"class_type":"ControlNetLoader","inputs":{"control_net_name":cn}};
+    workflow["33"]={"class_type":"ControlNetApplyAdvanced","inputs":{
+      "positive":["2",0],"negative":["3",0],
+      "control_net":["32",0],"image":["31",0],
+      "strength":parseFloat($('sCnS').value),
+      "start_percent":0,
+      "end_percent":parseFloat($('sCnE').value),
+    }};
+    posSource=["33",0];
+    negSource=["33",1];
+  }
+
+  // KSampler
+  workflow["8"]={"class_type":"KSampler","inputs":{
+    "model":modelSource,
+    "positive":posSource,
+    "negative":negSource,
+    "latent_image":["4",0],
+    "seed":Math.floor(Math.random()*2**32),
+    "steps":parseInt($('sSteps').value),
+    "cfg":parseFloat($('sCfg').value),
+    "sampler_name":$('selSampler').value,
+    "scheduler":$('selScheduler').value,
+    "denoise":1.0,
+  }};
+
+  return workflow;
+}
+
+// ========== 생성 실행 ==========
+let currentPromptId=null;
+
+async function generate(){
+  if(isGenerating)return;
+  isGenerating=true;
+  $('generateBtn').disabled=true;
+  $('progressBar').style.width='0%';
+
+  const workflow=buildWorkflow();
+  log('워크플로우 생성 완료, 전송 중...');
+
+  try{
+    const r=await fetch(`http://${SERVER}/prompt`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:workflow,client_id:clientId})
+    });
+    const d=await r.json();
+    if(d.node_errors&&Object.keys(d.node_errors).length>0){
+      const errs=Object.entries(d.node_errors).map(([id,e])=>`노드${id}(${e.class_type}): ${e.errors?.map(x=>x.message).join(', ')}`).join('\n');
+      log('검증 에러:\n'+errs);
+      toast('워크플로우 검증 실패!','error');
+      isGenerating=false;
+      $('generateBtn').disabled=false;
+      return;
+    }
+    currentPromptId=d.prompt_id;
+    log('대기열 추가됨: '+d.prompt_id.substring(0,8)+'...');
+  }catch(e){
+    log('전송 실패: '+e.message);
+    toast('전송 실패!','error');
+    isGenerating=false;
+    $('generateBtn').disabled=false;
+  }
+}
+
+async function onGenerationDone(promptId){
+  if(promptId!==currentPromptId)return;
+  log('생성 완료!');
+  $('progressBar').style.width='100%';
+  isGenerating=false;
+  $('generateBtn').disabled=false;
+
+  try{
+    const r=await fetch(`http://${SERVER}/history/${promptId}`);
+    const h=await r.json();
+    const outputs=h[promptId]?.outputs||{};
+    const gallery=$('gallery');
+    
+    for(const nodeId in outputs){
+      const imgs=outputs[nodeId]?.images||[];
+      for(const img of imgs){
+        const url=`http://${SERVER}/view?filename=${encodeURIComponent(img.filename)}&subfolder=${encodeURIComponent(img.subfolder||'')}&type=${img.type}`;
+        const el=document.createElement('img');
+        el.src=url;
+        el.onclick=()=>{window.open(url,'_blank')};
+        gallery.prepend(el);
+      }
+    }
+    toast('이미지 생성 완료!');
+  }catch(e){log('결과 조회 실패: '+e.message)}
+}
+
+async function interrupt(){
+  try{await fetch(`http://${SERVER}/interrupt`,{method:'POST'});log('생성 중단 요청');toast('중단됨')}catch(e){log('중단 실패')}
+  isGenerating=false;$('generateBtn').disabled=false;
+}
+
+// ========== 프로파일 적용 ==========
+function applyProfile(name){
+  const p=PROFILES[name];
+  $('sSteps').value=p.steps;$('vSteps').textContent=p.steps;
+  $('sCfg').value=p.cfg;$('vCfg').textContent=p.cfg;
+  $('imgWidth').value=p.w;$('imgHeight').value=p.h;
+  $('sIpaW').value=p.ipaW;$('vIpaW').textContent=p.ipaW.toFixed(2);
+  $('sIpaS').value=p.ipaS;$('vIpaS').textContent=p.ipaS.toFixed(2);
+  $('sIpaE').value=p.ipaE;$('vIpaE').textContent=p.ipaE.toFixed(2);
+  $('sCnS').value=p.cnS;$('vCnS').textContent=p.cnS.toFixed(2);
+  $('sCnE').value=p.cnE;$('vCnE').textContent=p.cnE.toFixed(2);
+  $('selSampler').value=p.sampler;
+  log(`프로파일 적용: ${name}`);
+  toast(`${name} 프로파일 적용됨`);
+}
+
+// ========== 장르 프리셋 ==========
+function initGenres(){
+  const c=$('genrePresets');
+  GENRES.forEach((g,i)=>{
+    const t=document.createElement('span');
+    t.className='tag';
+    t.textContent=g.name;
+    t.onclick=()=>{
+      document.querySelectorAll('.presets .tag').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      const cur=$('positivePrompt').value;
+      $('positivePrompt').value=`(masterpiece, best quality:1.2), ${g.pos}`;
+      $('negativePrompt').value=`(low quality, worst quality:1.4), blurry, bad anatomy, extra limbs, ${g.neg}`;
+      log(`장르 적용: ${g.name}`);
+      toast(`장르: ${g.name}`);
+    };
+    c.appendChild(t);
+  });
+}
+
+// ========== 저장/불러오기 ==========
+function getSettings(){
+  return {
+    positive:$('positivePrompt').value,
+    negative:$('negativePrompt').value,
+    checkpoint:$('selCheckpoint').value,
+    controlnet:$('selControlNet').value,
+    ipadapter:$('selIPAdapter').value,
+    clipvision:$('selCLIPVision').value,
+    width:$('imgWidth').value,
+    height:$('imgHeight').value,
+    steps:$('sSteps').value,
+    cfg:$('sCfg').value,
+    sampler:$('selSampler').value,
+    scheduler:$('selScheduler').value,
+    ipaW:$('sIpaW').value,
+    ipaS:$('sIpaS').value,
+    ipaE:$('sIpaE').value,
+    ipaType:$('selIpaType').value,
+    ipaEmbed:$('selIpaEmbed').value,
+    cnS:$('sCnS').value,
+    cnE:$('sCnE').value,
+  };
+}
+
+function applySettings(s){
+  if(s.positive)$('positivePrompt').value=s.positive;
+  if(s.negative)$('negativePrompt').value=s.negative;
+  if(s.checkpoint)$('selCheckpoint').value=s.checkpoint;
+  if(s.controlnet)$('selControlNet').value=s.controlnet;
+  if(s.ipadapter)$('selIPAdapter').value=s.ipadapter;
+  if(s.clipvision)$('selCLIPVision').value=s.clipvision;
+  if(s.width){$('imgWidth').value=s.width}
+  if(s.height){$('imgHeight').value=s.height}
+  if(s.steps){$('sSteps').value=s.steps;$('vSteps').textContent=s.steps}
+  if(s.cfg){$('sCfg').value=s.cfg;$('vCfg').textContent=s.cfg}
+  if(s.sampler)$('selSampler').value=s.sampler;
+  if(s.scheduler)$('selScheduler').value=s.scheduler;
+  if(s.ipaW){$('sIpaW').value=s.ipaW;$('vIpaW').textContent=parseFloat(s.ipaW).toFixed(2)}
+  if(s.ipaS){$('sIpaS').value=s.ipaS;$('vIpaS').textContent=parseFloat(s.ipaS).toFixed(2)}
+  if(s.ipaE){$('sIpaE').value=s.ipaE;$('vIpaE').textContent=parseFloat(s.ipaE).toFixed(2)}
+  if(s.ipaType)$('selIpaType').value=s.ipaType;
+  if(s.ipaEmbed)$('selIpaEmbed').value=s.ipaEmbed;
+  if(s.cnS){$('sCnS').value=s.cnS;$('vCnS').textContent=parseFloat(s.cnS).toFixed(2)}
+  if(s.cnE){$('sCnE').value=s.cnE;$('vCnE').textContent=parseFloat(s.cnE).toFixed(2)}
+}
+
+function saveCurrentPreset(){
+  $('saveModal').classList.add('show');
+}
+function closeSaveModal(){$('saveModal').classList.remove('show')}
+
+function confirmSave(){
+  const name=$('saveName').value.trim();
+  if(!name){toast('이름을 입력하세요','error');return}
+  const saved=JSON.parse(localStorage.getItem('medialab_presets')||'[]');
+  saved.push({name,genre:$('saveGenre').value,settings:getSettings(),date:new Date().toISOString()});
+  localStorage.setItem('medialab_presets',JSON.stringify(saved));
+  closeSaveModal();
+  renderSaved();
+  toast(`"${name}" 저장됨!`);
+  log(`워크플로우 저장: ${name}`);
+}
+
+function renderSaved(){
+  const saved=JSON.parse(localStorage.getItem('medialab_presets')||'[]');
+  const c=$('savedList');
+  c.innerHTML='';
+  saved.forEach((s,i)=>{
+    const d=document.createElement('div');
+    d.className='saved-item';
+    d.innerHTML=`<span class="name"><b>${s.name}</b><br><small style="color:var(--text2)">${s.genre||''} ${new Date(s.date).toLocaleDateString()}</small></span><span class="del" onclick="event.stopPropagation();deleteSaved(${i})">✕</span>`;
+    d.onclick=()=>{applySettings(s.settings);toast(`"${s.name}" 불러옴`);log(`워크플로우 불러오기: ${s.name}`)};
+    c.appendChild(d);
+  });
+}
+
+function deleteSaved(i){
+  const saved=JSON.parse(localStorage.getItem('medialab_presets')||'[]');
+  const name=saved[i]?.name;
+  saved.splice(i,1);
+  localStorage.setItem('medialab_presets',JSON.stringify(saved));
+  renderSaved();
+  toast(`"${name}" 삭제됨`);
+}
+
+// ========== 초기화 ==========
+window.addEventListener('DOMContentLoaded',()=>{
+  initGenres();
+  renderSaved();
+  connectServer();
+});
+</script>
+</body>
+</html>
