@@ -1,55 +1,40 @@
 (function(){
 'use strict';
+var S={server:'http://127.0.0.1:8188',clientId:'comfyui_lab_'+Math.random().toString(16).slice(2),connected:false,ws:null,promptId:null,objectInfo:null};
 function q(id){return document.getElementById(id);}
-function setStatus(text, cls){
-  var t=q('statusText');
-  var d=q('statusDot');
-  if(t){t.textContent=text;}
-  if(d){d.className='status-dot '+(cls||'');}
-}
-function log(msg){
-  var box=q('logArea');
-  var line='['+new Date().toLocaleTimeString()+'] '+msg;
-  console.log(line);
-  if(box){box.textContent+=line+'\n';box.scrollTop=box.scrollHeight;}
-}
-window.connectServer=function(){
-  var input=q('serverUrl');
-  var url=input&&input.value?input.value.trim():'http://127.0.0.1:8188';
-  if(url.indexOf('http://')!==0&&url.indexOf('https://')!==0){url='http://'+url;}
-  if(input){input.value=url;}
-  setStatus('Checking','connecting');
-  fetch(url.replace(/\/+$/,'')+'/object_info',{cache:'no-store'})
-    .then(function(r){if(!r.ok){throw new Error('HTTP '+r.status);}return r.json();})
-    .then(function(info){
-      window.ComfyLabObjectInfo=info;
-      setStatus('Connected','connected');
-      var g=q('btnGenerate');
-      if(g){g.disabled=false;}
-      log('Connected. object_info nodes='+Object.keys(info).length);
-    })
-    .catch(function(e){
-      setStatus('Disconnected','');
-      log('Connect failed: '+e.message);
-      alert('ComfyUI 연결 실패: '+e.message);
-    });
-};
-window.showAdvancedDialog=function(){
-  var modal=q('advancedModal');
-  var grid=q('advancedGrid');
-  if(grid){grid.innerHTML='<label class="ctrl"><span>Server</span><input type="text" readonly value="'+(q('serverUrl')?q('serverUrl').value:'')+'"></label><label class="ctrl"><span>Status</span><input type="text" readonly value="hotfix loaded"></label>';}
-  if(modal){modal.classList.add('show');}else{alert('Advanced hotfix loaded');}
-};
+function val(id,def){var x=q(id);return x&&x.value!==''?x.value:def;}
+function setStatus(text,cls){var t=q('statusText');var d=q('statusDot');if(t){t.textContent=text;}if(d){d.className='status-dot '+(cls||'');}}
+function log(msg){var box=q('logArea');var line='['+new Date().toLocaleTimeString()+'] '+msg;console.log(line);if(box){box.textContent+=line+'\n';box.scrollTop=box.scrollHeight;}}
+function baseUrl(){var input=q('serverUrl');var url=input&&input.value?input.value.trim():'http://127.0.0.1:8188';if(url.indexOf('http://')!==0&&url.indexOf('https://')!==0){url='http://'+url;}url=url.replace(/\/+$/,'');if(input){input.value=url;}S.server=url;return url;}
+function apiGet(path){return fetch(S.server+path,{cache:'no-store'}).then(function(r){if(!r.ok){throw new Error(path+' HTTP '+r.status);}return r.json();});}
+function apiPost(path,obj){return fetch(S.server+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj||{})}).then(function(r){if(!r.ok){throw new Error(path+' HTTP '+r.status);}return r.text();}).then(function(t){return t?JSON.parse(t):{};});}
+function fillSelect(id,items){var s=q(id);if(!s){return;}s.innerHTML='';var blank=document.createElement('option');blank.value='';blank.textContent='';s.appendChild(blank);(items||[]).forEach(function(x){var o=document.createElement('option');o.value=x;o.textContent=x;s.appendChild(o);});if(s.options.length>1){s.selectedIndex=1;}}
+function inputChoices(info,nodeName,keyName){try{var req=info[nodeName].input.required;if(keyName&&req[keyName]&&Array.isArray(req[keyName][0])){return req[keyName][0];}var keys=Object.keys(req);for(var i=0;i<keys.length;i++){if(Array.isArray(req[keys[i]])&&Array.isArray(req[keys[i]][0])){return req[keys[i]][0];}}}catch(e){}return[];}
+function fillModels(info){fillSelect('selCheckpoint',inputChoices(info,'CheckpointLoaderSimple','ckpt_name'));fillSelect('selControlnet',inputChoices(info,'ControlNetLoader','control_net_name'));fillSelect('selIpadapter',inputChoices(info,'IPAdapterModelLoader','ipadapter_file'));fillSelect('selClipvision',inputChoices(info,'CLIPVisionLoader','clip_name'));}
+function openWs(){try{if(S.ws){S.ws.close();}}catch(e){}var wsUrl=S.server.replace(/^http:/,'ws:').replace(/^https:/,'wss:')+'/ws?clientId='+encodeURIComponent(S.clientId);try{var ws=new WebSocket(wsUrl);S.ws=ws;ws.onopen=function(){log('WebSocket connected');};ws.onclose=function(){log('WebSocket closed');};ws.onerror=function(){log('WebSocket error');};ws.onmessage=function(ev){try{var m=JSON.parse(ev.data);if(m.type==='executing'&&m.data&&m.data.node===null&&m.data.prompt_id===S.promptId){loadHistory(S.promptId);}}catch(e){}};}catch(e){log('WebSocket open failed: '+e.message);}}
+window.connectServer=function(){baseUrl();setStatus('Checking','connecting');log('Connecting '+S.server);return apiGet('/object_info').then(function(info){S.objectInfo=info;window.ComfyLabObjectInfo=info;fillModels(info);S.connected=true;setStatus('Connected','connected');var g=q('btnGenerate');if(g){g.disabled=false;}openWs();log('Connected. object_info nodes='+Object.keys(info).length);}).catch(function(e){S.connected=false;setStatus('Disconnected','');var g=q('btnGenerate');if(g){g.disabled=true;}log('Connect failed: '+e.message);alert('ComfyUI 연결 실패: '+e.message);});};
+function num(id,def){var n=Number(val(id,def));return isNaN(n)?def:n;}
+function buildWorkflow(){var ckpt=val('selCheckpoint','');if(!ckpt){throw new Error('Checkpoint를 먼저 선택하세요. Connect 후 목록이 비어 있으면 ComfyUI checkpoints 폴더를 확인하세요.');}var seed=parseInt(val('inSeed','-1'),10);if(isNaN(seed)||seed<0){seed=Math.floor(Math.random()*2147483647);}var positive=val('positivePrompt','masterpiece, best quality');var negative=val('negativePrompt','low quality');var width=parseInt(num('inWidth',512),10);var height=parseInt(num('inHeight',768),10);var steps=parseInt(num('inSteps',25),10);var cfg=num('inCfg',7);var sampler=val('selSampler','dpmpp_2m');var scheduler=val('selScheduler','karras');return {
+'1':{class_type:'CheckpointLoaderSimple',inputs:{ckpt_name:ckpt}},
+'2':{class_type:'CLIPTextEncode',inputs:{text:positive,clip:['1',1]}},
+'3':{class_type:'CLIPTextEncode',inputs:{text:negative,clip:['1',1]}},
+'4':{class_type:'EmptyLatentImage',inputs:{width:width,height:height,batch_size:1}},
+'5':{class_type:'KSampler',inputs:{seed:seed,steps:steps,cfg:cfg,sampler_name:sampler,scheduler:scheduler,denoise:1,model:['1',0],positive:['2',0],negative:['3',0],latent_image:['4',0]}},
+'6':{class_type:'VAEDecode',inputs:{samples:['5',0],vae:['1',2]}},
+'7':{class_type:'SaveImage',inputs:{filename_prefix:'comfyui_lab',images:['6',0]}}
+};}
+window.generate=function(){var btn=q('btnGenerate');var stop=q('btnInterrupt');if(btn){btn.disabled=true;}if(stop){stop.disabled=false;}if(!S.connected){window.connectServer().then(queuePrompt).catch(function(){if(btn){btn.disabled=false;}});}else{queuePrompt();}};
+function queuePrompt(){try{var wf=buildWorkflow();apiPost('/prompt',{prompt:wf,client_id:S.clientId}).then(function(r){S.promptId=r.prompt_id;var info=q('genInfo');if(info){info.textContent='prompt '+S.promptId;}log('Queued prompt '+S.promptId);pollHistory(S.promptId,0);}).catch(function(e){log('Generate failed: '+e.message);alert('Generate 실패: '+e.message);finishRun();});}catch(e){log('Generate failed: '+e.message);alert(e.message);finishRun();}}
+function finishRun(){var btn=q('btnGenerate');var stop=q('btnInterrupt');if(btn){btn.disabled=false;}if(stop){stop.disabled=true;}}
+window.interrupt=function(){apiPost('/interrupt',{}).then(function(){log('Interrupt sent');}).catch(function(e){log('Interrupt failed: '+e.message);}).finally(finishRun);};
+function pollHistory(pid,count){if(!pid||count>180){finishRun();return;}setTimeout(function(){loadHistory(pid,true).then(function(done){if(!done){pollHistory(pid,count+1);}}).catch(function(){pollHistory(pid,count+1);});},1000);}
+function loadHistory(pid,silent){return apiGet('/history/'+encodeURIComponent(pid)).then(function(h){var item=h[pid];if(!item||!item.outputs){return false;}var img=null;Object.keys(item.outputs).forEach(function(k){var o=item.outputs[k];if(!img&&o.images&&o.images.length>0){img=o.images[0];}});if(!img){return false;}var url=S.server+'/view?filename='+encodeURIComponent(img.filename)+'&subfolder='+encodeURIComponent(img.subfolder||'')+'&type='+encodeURIComponent(img.type||'output')+'&t='+Date.now();var gallery=q('gallery');if(gallery){var im=document.createElement('img');im.src=url;im.title=img.filename;im.onclick=function(){window.open(url,'_blank');};gallery.insertBefore(im,gallery.firstChild);}log('Image loaded '+img.filename);finishRun();return true;}).catch(function(e){if(!silent){log('History load failed: '+e.message);}return false;});}
+window.showAdvancedDialog=function(){var modal=q('advancedModal');var grid=q('advancedGrid');if(grid){grid.innerHTML='<label class="ctrl"><span>Server</span><input type="text" readonly value="'+S.server+'"></label><label class="ctrl"><span>Connected</span><input type="text" readonly value="'+S.connected+'"></label><label class="ctrl"><span>ClientId</span><input type="text" readonly value="'+S.clientId+'"></label><label class="ctrl"><span>Checkpoint count</span><input type="text" readonly value="'+(q('selCheckpoint')?Math.max(0,q('selCheckpoint').options.length-1):0)+'"></label>';}
+if(modal){modal.classList.add('show');}else{alert('Advanced loaded');}};
 window.closeAdvancedDialog=function(){var m=q('advancedModal');if(m){m.classList.remove('show');}};
 window.applyAdvancedSettings=function(){window.closeAdvancedDialog();};
-window.generate=window.generate||function(){alert('Generate workflow is not connected in this hotfix yet. First confirm Connect error is cleared.');};
-window.interrupt=window.interrupt||function(){log('interrupt requested');};
-window.handleUpload=window.handleUpload||function(input,key){
-  if(!input.files||!input.files[0]){return;}
-  var target=q(key==='char'?'previewChar':'previewPose');
-  if(target){target.textContent=input.files[0].name;}
-};
-window.saveCurrentPreset=window.saveCurrentPreset||function(){localStorage.setItem('comfyui_lab_last_prompt',q('positivePrompt')?q('positivePrompt').value:'');log('Preset saved');};
-window.applyProfile=window.applyProfile||function(name){log('Profile '+name);};
-log('hotfix.js loaded');
+window.handleUpload=function(input,key){if(!input.files||!input.files[0]){return;}var target=q(key==='char'?'previewChar':'previewPose');if(target){target.textContent=input.files[0].name;}log(key+' image selected '+input.files[0].name);};
+window.saveCurrentPreset=function(){var p={positive:val('positivePrompt',''),negative:val('negativePrompt',''),width:val('inWidth','512'),height:val('inHeight','768'),steps:val('inSteps','25'),cfg:val('inCfg','7')};localStorage.setItem('comfyui_lab_preset',JSON.stringify(p));log('Preset saved');};
+window.applyProfile=function(name){if(name==='quality'){q('inSteps').value=35;q('inCfg').value=7.5;}else if(name==='speed'){q('inSteps').value=12;q('inCfg').value=6;}else{q('inSteps').value=25;q('inCfg').value=7;}log('Profile '+name);};
+log('hotfix.js loaded: txt2img generation enabled');
 })();
